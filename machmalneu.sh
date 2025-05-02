@@ -48,8 +48,8 @@ cp kiosk-boot.sh /usr/local/bin/kiosk-boot.sh
 chmod +x /usr/local/bin/kiosk-boot.sh
 
 # Netzwerk-Konfiguration
-cp configs/interfaces /etc/network/interfaces
-cp configs/hosts /etc/hosts
+cp interfaces /etc/network/interfaces
+cp hosts /etc/hosts
 
 # Benutzer-Skripte
 install -m 755 -o kiosk -g kiosk scripts/start-gui.sh /home/kiosk/start-gui.sh
