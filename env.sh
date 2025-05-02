@@ -6,8 +6,14 @@
 # Eigene IP-Adresse (PVE-Host)
 export KIOSK_PVE_IP="192.168.188.174"   # ← ändern, falls sich IP ändert
 
+# Soll-Gateway
+export KIOSK_PVE_GW="192.168.188.1"
+
+# Ping-Ziel für Internet-Check
+export PING_HOST="8.8.8.8"
+
 # Home Assistant IP-Adresse (VM oder Container)
-export KIOSK_HA_IP="192.168.188.76"     # ← ändern, wenn sich HA-Adresse ändert
+export KIOSK_HA_IP="100.85.64.126"     # ← ändern, wenn sich HA-Adresse ändert
 
 # Bildschirmanschlussname (für xrandr und xset dpms)
 export KIOSK_DISPLAY_PORT="DisplayPort-0"  # z. B. HDMI-1, DP-1, etc.
@@ -23,3 +29,5 @@ export DISPLAY=":0"
 
 # Delay Serverstart zu HA Ready
 export KIOSKDELAY="90"
+
+
