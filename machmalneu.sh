@@ -1,24 +1,18 @@
 #!/bin/bash
-
-# nano machmalneu.sh
-# chmod +x machmalneu.sh
-# ./machmalneu.sh
+set -euo pipefail
 
 echo "📦 STARTE KIOSK-INSTALLATION"
 
 #########################################
-# 🛑 Step 0: Neuen Benutzer 'kiosk' anlegen
+# 🛑 Step 0: Benutzer 'kiosk' anlegen
 #########################################
 echo "👤 Lege Benutzer 'kiosk' an..."
 adduser --disabled-password --gecos "" kiosk
-usermod -aG video kiosk
-usermod -aG render kiosk
-usermod -aG tty kiosk
-usermod -aG input kiosk
-echo "✅ Benutzer 'kiosk' mit allen nötigen Gruppen angelegt."
+usermod -aG video,render,tty,input kiosk
+echo "✅ Benutzer 'kiosk' mit Gruppenrechten angelegt."
 
 #########################################
-# 🔧 Step 1: Benötigte Pakete installieren
+# 🔧 Step 1: Pakete installieren
 #########################################
 echo "📦 Installiere benötigte Pakete..."
 apt update
@@ -31,81 +25,70 @@ apt install -y \
 echo "✅ Software installiert."
 
 #########################################
-# 🌐 Step 2: Git-Repo klonen
+# 🌐 Step 2: Repository klonen
 #########################################
 echo "🌐 Klone Projekt-Repo..."
-
 mkdir -p /opt/kiosk-setup
 cd /opt/kiosk-setup
-
-git clone https://github.com/jck5000/blaueshaus.git .  # ⬅️ URL anpassen
-
+git clone https://github.com/jck5000/blaueshaus.git .  # ggf. URL anpassen
 echo "✅ Repository geklont."
 
 #########################################
-# 📂 Step 3: Konfigs & Skripte kopieren
+# 📂 Step 3: Konfiguration & Skripte
 #########################################
+echo "📂 Kopiere Konfigurationsdateien…"
 
-echo "📂 Kopiere Konfigs & Skripte..."
-
-# globale Variablen
+# globale Umgebungsvariablen
 mkdir -p /etc/kiosk
-cp configs/env.sh /etc/kiosk/
+cp env.sh /etc/kiosk/
 
-# Benutzerskripte
-cp scripts/start-kiosk.sh /home/kiosk/
-cp scripts/start-gui.sh /home/kiosk/
-cp scripts/killffx.sh /home/kiosk/
-cp scripts/.xinitrc /home/kiosk/
-cp scripts/.bash_profile /home/kiosk/
-chown kiosk:kiosk /home/kiosk/*
+# Netzwerk-Kontroll-Start
+cp kiosk-boot.sh /usr/local/bin/kiosk-boot.sh
+chmod +x /usr/local/bin/kiosk-boot.sh
 
-chmod +x /home/kiosk/*.sh
+# Benutzer-Startskripte
+install -m 755 -o kiosk -g kiosk scripts/start-gui.sh /home/kiosk/start-gui.sh
+install -m 755 -o kiosk -g kiosk scripts/killffx.sh /home/kiosk/killffx.sh
+install -m 755 -o kiosk -g kiosk scripts/reload-kiosk.sh /usr/local/bin/reload-kiosk
+install -m 644 -o kiosk -g kiosk scripts/.xinitrc /home/kiosk/.xinitrc
+install -m 644 -o kiosk -g kiosk scripts/.bash_profile /home/kiosk/.bash_profile
+install -m 644 -o kiosk -g kiosk scripts/kiosk.crontab /home/kiosk/kiosk.crontab
 
 # Webhook-Server
 cp scripts/webhook.py /home/kiosk/
 chown kiosk:kiosk /home/kiosk/webhook.py
 
-# reload-kiosk
-cp scripts/reload-kiosk.sh /usr/local/bin/reload-kiosk
-chmod +x /usr/local/bin/reload-kiosk
-
-echo "✅ Dateien verteilt."
+echo "✅ Skripte & Konfigurationen bereitgestellt."
 
 #########################################
-# 🛠 Step 4: Autologin einrichten
+# 🛠 Step 4: Autologin mit Netzprüfung
 #########################################
-
+echo "🛠 Aktiviere Autologin mit Netzwerkprüfung…"
 mkdir -p /etc/systemd/system/getty@tty1.service.d
-
-cp systemd/override.conf /etc/systemd/system/getty@tty1.service.d/override.conf
-
-echo "✅ Autologin aktiviert."
+cat <<EOF > /etc/systemd/system/getty@tty1.service.d/override.conf
+[Service]
+ExecStart=
+ExecStart=-/usr/local/bin/kiosk-boot.sh %I \$TERM
+EOF
 
 #########################################
-# 🔁 Step 5: Webhook als systemd-Service
+# 🔁 Step 5: Webhook als Dienst aktivieren
 #########################################
-
+echo "🔁 Aktiviere Webhook-Service…"
 cp systemd/kiosk-webhook.service /etc/systemd/system/
-
 systemctl daemon-reexec
 systemctl daemon-reload
 systemctl enable kiosk-webhook
 systemctl restart kiosk-webhook
 
-echo "✅ Webhook-Service aktiv."
-
 #########################################
-# 🕓 Step 6: Cronjob für Reload setzen
+# 🕓 Step 6: Crontab aktivieren
 #########################################
-
-crontab -u kiosk scripts/kiosk.crontab
-
-echo "✅ Crontab gesetzt."
+echo "🕓 Setze Crontab für Benutzer 'kiosk'…"
+crontab -u kiosk /home/kiosk/kiosk.crontab
 
 #########################################
 # 🧹 Fertig!
 #########################################
-
-echo "🎉 Kiosk-System vollständig installiert."
-echo "🔁 Jetzt am besten: reboot"
+echo "🎉 Installation abgeschlossen!"
+echo "🔁 Empfohlen: jetzt 'reboot'"
