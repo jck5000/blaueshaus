@@ -1,0 +1,38 @@
+auto lo
+iface lo inet loopback
+
+iface enp1s0 inet manual
+
+auto vmbr0
+allow-hotplug vmbr0
+iface vmbr0 inet manual
+    bridge_ports enp1s0
+    bridge_stp off
+    bridge_fd 0
+    post-up ping -c1 -W1 8.8.8.8 >/dev/null 2>&1 || dhclient vmbr0
+
+# --- Standard: DHCP, wenn kein statisches Netz definiert ---
+auto vmbr0:9
+iface vmbr0:9 inet dhcp
+
+# --- AKTIVES NETZ: 192.168.188.60 mit Gateway 192.168.188.1 ---
+#auto vmbr0:0
+#iface vmbr0:0 inet static
+#    address 192.168.188.174
+#    netmask 255.255.255.0#   gateway 192.168.188.1
+
+# --- VORBEREITET: 192.168.44.60 mit Gateway 192.168.44.3 ---
+#auto vmbr0:1
+#iface vmbr0:1 inet static
+#    address 192.168.44.60
+#    netmask 255.255.255.0
+#    gateway 192.168.44.3
+
+# --- VORBEREITET: 10.0.0.60 mit Gateway 10.0.0.138 ---
+#auto vmbr0:2
+#iface vmbr0:2 inet static
+#    address 10.0.0.60
+#    netmask 255.255.255.0
+#    gateway 10.0.0.138
+
+
